@@ -1,0 +1,1 @@
+﻿{"static": {"description": "Allow all users", "statement": "permit(principal, action, resource);"}}

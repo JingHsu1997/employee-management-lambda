@@ -1,0 +1,10 @@
+{
+  "name": "employee-management-lambda",
+  "version": "1.0.0",
+  "description": "Employee management Lambda functions",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1691.0",
+    "uuid": "^10.0.0"
+  }
+}

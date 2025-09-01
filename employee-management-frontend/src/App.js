@@ -1,41 +1,68 @@
-import { Amplify } from 'aws-amplify';
-import './App.css';
-import EmployeeList from './EmployeeList';
-import CognitoLogin from './CognitoLogin';
-import api from './api';
-import { useState } from 'react';
+// App.js
 
-// Configure Amplify (Auth) once for the app
-Amplify.configure({
-  Auth: {
-    region: 'ap-southeast-2',
-    userPoolId: 'ap-southeast-2_aDll8F8yq',
-    userPoolWebClientId: '6ktcfi5mi15ktlafc0cq562rfj',
-    authenticationFlowType: 'USER_PASSWORD_AUTH',
-    // Ensure the Cognito.loginWith structure exists so Amplify doesn't try to read
-    // `.loginWith` on an undefined Cognito object (avoids runtime TypeError).
-    Cognito: {
-      loginWith: { oauth: false }
-    }
-  }
-});
+import "./App.css";
+import { useAuth } from "react-oidc-context";
+import EmployeeList from "./EmployeeList";
+import AttendanceSystem from "./AttendanceSystem";
+import PermissionDiagnostic from "./PermissionDiagnostic";
+import { setAuthContext } from "./api";
+import { useEffect } from "react";
+
 function App() {
-  const [idToken, setIdToken] = useState(localStorage.getItem('idToken') || '');
+  const auth = useAuth();
 
-  const handleLogin = (token) => {
-    setIdToken(token);
-    localStorage.setItem('idToken', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  // 設置 auth context 到 API 模組
+  useEffect(() => {
+    setAuthContext(auth);
+    // 調試：檢查token
+    if (auth.user) {
+      console.log('Auth user:', auth.user);
+      console.log('Access token:', auth.user.access_token?.substring(0, 50) + '...');
+    }
+  }, [auth]);
+
+  const signOutRedirect = () => {
+    const clientId = "6ktcfi5mi15ktlafc0cq562rfj";
+    const logoutUri = "http://localhost:3000";
+    const cognitoDomain = "https://ap-southeast-2adll8f8yq.auth.ap-southeast-2.amazoncognito.com";
+    window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
   };
 
-  // 若已登入則自動設 header
-  if (idToken) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
+  if (auth.isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (auth.error) {
+    return <div>Encountering error... {auth.error.message}</div>;
+  }
+
+  if (auth.isAuthenticated) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px' }}>
+          <h3>歡迎, {auth.user?.profile.email}</h3>
+          <button onClick={() => auth.removeUser()} style={{ marginRight: '10px' }}>Sign out</button>
+          <button onClick={signOutRedirect}>Sign out (Redirect)</button>
+        </div>
+
+        <PermissionDiagnostic />
+
+        <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <EmployeeList />
+          </div>
+          <div style={{ flex: 1 }}>
+            <AttendanceSystem currentUser={auth.user} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="App">
-      {idToken ? <EmployeeList /> : <CognitoLogin onLogin={handleLogin} />}
+    <div style={{ padding: '20px' }}>
+      <h1>員工管理系統</h1>
+      <button onClick={() => auth.signinRedirect()}>Sign in</button>
     </div>
   );
 }

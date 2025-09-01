@@ -1,0 +1,240 @@
+service: employee-management
+
+package:
+  individually: true
+  exclude:
+    - employee-management-frontend/**
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-southeast-2
+  environment:
+    EMPLOYEES_TABLE: Employees
+    CHECKINS_TABLE: CheckIns
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.EMPLOYEES_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CHECKINS_TABLE}
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CHECKINS_TABLE}/index/*
+
+functions:
+  createEmployee:
+    handler: employees/create.handler
+    events:
+      - http:
+          path: employees
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  getEmployees:
+    handler: employees/getEmployees.handler
+    events:
+      - http:
+          path: employees
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  getEmployee:
+    handler: employees/getEmployee.handler
+    events:
+      - http:
+          path: employees/{id}
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  updateEmployee:
+    handler: employees/update.handler
+    events:
+      - http:
+          path: employees/{id}
+          method: put
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  deleteEmployee:
+    handler: employees/delete.handler
+    events:
+      - http:
+          path: employees/{id}
+          method: delete
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  checkIn:
+    handler: checkin/checkIn.handler
+    events:
+      - http:
+          path: checkin
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  getAttendance:
+    handler: checkin/getAttendance.handler
+    events:
+      - http:
+          path: attendance
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  generateReport:
+    handler: checkin/generateReport.handler
+    events:
+      - http:
+          path: attendance/report
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+  checkPermissions:
+    handler: auth/checkPermissions.handler
+    events:
+      - http:
+          path: auth/check-permissions
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          authorizer:
+            arn: arn:aws:cognito-idp:ap-southeast-2:417371242127:userpool/ap-southeast-2_aDll8F8yq
+
+resources:
+  Resources:
+    EmployeesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Employees
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    CheckInsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: CheckIns
+        AttributeDefinitions:
+          - AttributeName: employeeId
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: employeeId
+            KeyType: HASH
+          - AttributeName: date
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: TimestampIndex
+            KeySchema:
+              - AttributeName: employeeId
+                KeyType: HASH
+              - AttributeName: timestamp
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
